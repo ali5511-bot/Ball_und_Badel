@@ -2,8 +2,6 @@
 *.class
 
 
-
-
 ### IntelliJ IDEA ###
 out/
 !**/src/main/**/out/
