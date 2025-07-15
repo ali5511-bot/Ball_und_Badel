@@ -7,11 +7,12 @@ public class Breakout {
             JFrame frame = new JFrame("Ball und Paddle");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setSize(600, 600);
+            frame.setResizable(false);
             GamePanel panel = new Level1Panel();  // Oder das gewünschte Level
             frame.add(panel);
+            frame.setLocationRelativeTo(null); // Fenster zentrieren
             frame.setVisible(true);
-
-            // Fokus , nachdem das Fenster sichtbar
+            panel.requestFocusInWindow(); // Fokus explizit setzen
         });
     }
 }

@@ -9,6 +9,7 @@ public abstract class GamePanel extends JPanel implements ActionListener, KeyLis
     protected int ballX, ballY;
     protected int ballSize = 20;
     protected int dx = 3, dy = -3;
+    protected final int initialDx = 3, initialDy = -3;
     protected int lives = 3;
     protected boolean gameOver = false;
 
@@ -31,10 +32,9 @@ public abstract class GamePanel extends JPanel implements ActionListener, KeyLis
     }
 
     protected void resetGame() {
-        dx = 3;
-        dy = -3;
-        paddleX = (600 - paddleWidth) / 2;
-
+        dx = initialDx;
+        dy = initialDy;
+        paddleX = (getWidth() > 0 ? getWidth() : 600 - paddleWidth) / 2;
         // Ball zentriert über Paddle
         ballX = paddleX + (paddleWidth - ballSize) / 2;
         ballY = getHeight() > 0 ? getHeight() - 40 - ballSize - 100 : 500;
@@ -92,19 +92,31 @@ public abstract class GamePanel extends JPanel implements ActionListener, KeyLis
             if (ballX <= 0 || ballX + ballSize >= getWidth()) dx = -dx;
             if (ballY <= 0) dy = -dy;
 
-            // Paddle-Kollision
+            // Paddle-Kollision (Ball-Richtung abhängig von Trefferposition)
             Rectangle paddleRect = new Rectangle(paddleX, getHeight() - 40, paddleWidth, paddleHeight);
             Rectangle ballRect = new Rectangle(ballX, ballY, ballSize, ballSize);
             if (ballRect.intersects(paddleRect)) {
-                dy = -dy;
+                // Ball trifft Paddle: Richtung abhängig von Trefferposition
+                int hitPos = (ballX + ballSize / 2) - (paddleX + paddleWidth / 2);
+                double norm = hitPos / (paddleWidth / 2.0);
+                dx = (int) (norm * 5);
+                if (dx == 0) dx = (Math.random() > 0.5) ? 2 : -2;
+                dy = -Math.abs(dy);
                 ballY = getHeight() - 40 - ballSize;
             }
 
-            // Block-Kollision
+            // Block-Kollision (Kollisionsseite berücksichtigen)
             for (int i = 0; i < blocks.size(); i++) {
-                if (ballRect.intersects(blocks.get(i))) {
+                Rectangle block = blocks.get(i);
+                if (ballRect.intersects(block)) {
+                    // Kollisionsseite bestimmen
+                    Rectangle intersection = ballRect.intersection(block);
+                    if (intersection.width > intersection.height) {
+                        dy = -dy;
+                    } else {
+                        dx = -dx;
+                    }
                     blocks.remove(i);
-                    dy = -dy;
                     break;
                 }
             }
@@ -120,34 +132,10 @@ public abstract class GamePanel extends JPanel implements ActionListener, KeyLis
             // Ball fällt raus
             if (ballY > getHeight()) {
                 lives--;
-
                 if (lives <= 0) {
                     gameOver = true;
                     timer.stop();
                     repaint();
-
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ex) {
-                        ex.printStackTrace();
-                    }
-
-                    int response = JOptionPane.showConfirmDialog(
-                            this,
-                            "Game Over! Willst du nochmal spielen?",
-                            "Spiel beenden",
-                            JOptionPane.YES_NO_OPTION
-                    );
-
-                    if (response == JOptionPane.YES_OPTION) {
-                        lives = 3;
-                        gameOver = false;
-                        resetGame();
-                        initBlocks();
-                        timer.start();
-                    } else {
-                        System.exit(0);
-                    }
                 } else {
                     resetGame();
                 }
@@ -162,6 +150,14 @@ public abstract class GamePanel extends JPanel implements ActionListener, KeyLis
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_LEFT) leftPressed = true;
         if (e.getKeyCode() == KeyEvent.VK_RIGHT) rightPressed = true;
+        if (gameOver && e.getKeyCode() == KeyEvent.VK_SPACE) {
+            // Neustart nach Game Over mit Leertaste
+            lives = 3;
+            gameOver = false;
+            resetGame();
+            initBlocks();
+            timer.start();
+        }
     }
 
     @Override
